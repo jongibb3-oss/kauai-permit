@@ -1,12 +1,11 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const PERMIT_TYPES = ["Building Permit (New Construction)","Building Permit (Addition/Alteration)","Grading & Grubbing Permit","Special Management Area (SMA) Use Permit","Shoreline Setback Variance","Zoning Variance","Use Permit (Special Use)","Flood Zone Development Permit","Demolition Permit","Electrical Permit","Plumbing Permit","Other / Not Sure"];
 const ZONES = ["Residential (R-1 through R-20)","Agricultural (A-1 or A-2)","Open (O)","Conservation (C)","Commercial (C-1 through C-3)","Industrial (I or M)","Tourism (T or V)","Special Treatment (ST)","Not Sure"];
 const DISTRICTS = ["Lihue","Hanalei","Koloa","Waimea","Kawaihau","Not Sure"];
 const INITIAL_FORM = {firstName:"",lastName:"",email:"",phone:"",tmk:"",address:"",district:"",zone:"",permitType:"",projectDescription:"",sqft:"",stories:"",estimatedCost:"",inSMA:"",inFloodZone:"",historicProperty:"",nearStream:"",additionalInfo:""};
 const STEP_TITLES = ["Applicant Info","Property Details","Project Scope","Site Conditions","AI Review"];
-
 const inputStyle = {width:"100%",padding:"0.65rem 0.85rem",border:"1.5px solid #c8dfc7",borderRadius:"6px",fontSize:"0.93rem",color:"#1a2e1c",background:"#fafdfa",fontFamily:"'Lora',Georgia,serif",outline:"none",transition:"border 0.2s",boxSizing:"border-box"};
 
 function FieldGroup({label,children,required}){return(<div style={{marginBottom:"1.4rem"}}><label style={{display:"block",fontSize:"0.72rem",fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",color:"#4a7c59",marginBottom:"0.45rem",fontFamily:"'DM Mono',monospace"}}>{label}{required&&<span style={{color:"#c0392b",marginLeft:2}}>*</span>}</label>{children}</div>);}
@@ -14,18 +13,21 @@ function Input({value,onChange,placeholder,type="text"}){return <input type={typ
 function Select({value,onChange,options,placeholder}){return(<select value={value} onChange={onChange} style={{...inputStyle,appearance:"none",cursor:"pointer"}} onFocus={e=>e.target.style.borderColor="#4a7c59"} onBlur={e=>e.target.style.borderColor="#c8dfc7"}><option value="">{placeholder||"Select..."}</option>{options.map(o=><option key={o} value={o}>{o}</option>)}</select>);}
 function Textarea({value,onChange,placeholder,rows=4}){return <textarea value={value} onChange={onChange} placeholder={placeholder} rows={rows} style={{...inputStyle,resize:"vertical",lineHeight:1.6}} onFocus={e=>e.target.style.borderColor="#4a7c59"} onBlur={e=>e.target.style.borderColor="#c8dfc7"}/>;}
 function RadioGroup({value,onChange,name}){return(<div style={{display:"flex",gap:"1.5rem"}}>{["Yes","No","Unsure"].map(opt=>(<label key={opt} style={{display:"flex",alignItems:"center",gap:"0.4rem",cursor:"pointer",fontSize:"0.92rem",color:"#2d4a30",fontFamily:"'Lora',serif"}}><input type="radio" name={name} value={opt} checked={value===opt} onChange={onChange} style={{accentColor:"#4a7c59"}}/>{opt}</label>))}</div>);}
-
 function StepIndicator({current,total}){return(<div style={{display:"flex",alignItems:"center",marginBottom:"2.5rem"}}>{Array.from({length:total}).map((_,i)=>(<div key={i} style={{display:"flex",alignItems:"center",flex:i<total-1?1:"none"}}><div style={{width:32,height:32,borderRadius:"50%",background:i<current?"#4a7c59":i===current?"#2d6a3f":"#ddeedd",color:i<=current?"#fff":"#7aab82",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"0.78rem",fontWeight:700,fontFamily:"'DM Mono',monospace",border:i===current?"2.5px solid #1a5c2a":"none",flexShrink:0}}>{i<current?"✓":i+1}</div>{i<total-1&&<div style={{flex:1,height:2,background:i<current?"#4a7c59":"#ddeedd",margin:"0 4px"}}/>}</div>))}</div>);}
 
 function AIReviewPanel({form}){
+  const [mounted,setMounted]=useState(false);
   const [status,setStatus]=useState("idle");
-  const [result,setResult]=useState(null);
-  const [rawError,setRawError]=useState(null);
+  const [result,setResult]=useState("");
+  const [rawError,setRawError]=useState("");
+
+  useEffect(()=>{setMounted(true);},[]);
+  if(!mounted)return null;
 
   const runReview=async()=>{
     setStatus("loading");
-    setResult(null);
-    setRawError(null);
+    setResult("");
+    setRawError("");
     const prompt=`You are an expert permit reviewer for Kauai County, Hawaii. Analyze this application and provide:
 1. Preliminary Eligibility Assessment
 2. Applicable Permit Types
@@ -49,7 +51,7 @@ APPLICATION:
       if(data.content&&data.content.length>0){
         setResult(data.content.map(b=>b.text||"").join(""));
         setStatus("done");
-      } else {
+      }else{
         setRawError(JSON.stringify(data));
         setStatus("done");
       }
@@ -71,7 +73,6 @@ APPLICATION:
         </div>
         <p style={{fontSize:"0.88rem",color:"#3d5c40",fontFamily:"'Lora',serif",lineHeight:1.6,margin:0}}>Preliminary assessment only — not an official determination. Always verify with Kauai County Planning Division.</p>
       </div>
-
       {status==="idle"&&<button onClick={runReview} style={{width:"100%",padding:"1rem",background:"linear-gradient(135deg,#2d6a3f,#4a7c59)",color:"#fff",border:"none",borderRadius:8,fontSize:"1rem",fontWeight:700,fontFamily:"'DM Mono',monospace",cursor:"pointer",boxShadow:"0 4px 16px rgba(45,106,63,0.3)"}}>✦ Run AI Permit Review</button>}
       {status==="loading"&&<div style={{textAlign:"center",padding:"3rem 1rem"}}><div style={{fontSize:"2rem",marginBottom:"1rem"}}>🌿</div><div style={{fontFamily:"'Lora',serif",color:"#4a7c59"}}>Analyzing your application...</div><div style={{fontFamily:"'DM Mono',monospace",color:"#7aab82",fontSize:"0.78rem",marginTop:"0.5rem"}}>This usually takes 10–20 seconds</div></div>}
       {status==="error"&&<div style={{background:"#fff5f5",border:"1.5px solid #f5c6c6",borderRadius:8,padding:"1.2rem",color:"#8b2020"}}>Error: {rawError}<button onClick={runReview} style={{marginTop:"0.75rem",display:"block",padding:"0.5rem 1.2rem",background:"#c0392b",color:"#fff",border:"none",borderRadius:6,cursor:"pointer"}}>Retry</button></div>}
@@ -85,7 +86,7 @@ APPLICATION:
           <div style={{background:"#fffbea",border:"1.5px solid #f0dc82",borderRadius:8,padding:"1rem",marginTop:"1rem"}}>
             <p style={{fontSize:"0.82rem",color:"#5c4f10",fontFamily:"'Lora',serif",margin:0}}>⚠ Informational only. Confirm with Kauai County Planning Division at (808) 241-4050.</p>
           </div>
-          <button onClick={()=>{setStatus("idle");setResult(null);setRawError(null);}} style={{marginTop:"1rem",width:"100%",padding:"0.7rem",background:"transparent",color:"#4a7c59",border:"1.5px solid #4a7c59",borderRadius:8,fontFamily:"'DM Mono',monospace",cursor:"pointer"}}>↺ Run New Review</button>
+          <button onClick={()=>{setStatus("idle");setResult("");setRawError("");}} style={{marginTop:"1rem",width:"100%",padding:"0.7rem",background:"transparent",color:"#4a7c59",border:"1.5px solid #4a7c59",borderRadius:8,fontFamily:"'DM Mono',monospace",cursor:"pointer"}}>↺ Run New Review</button>
         </div>
       )}
     </div>
@@ -103,7 +104,6 @@ export default function KauaiPermitPrescreen(){
     if(step===3)return form.inSMA&&form.inFloodZone&&form.historicProperty&&form.nearStream;
     return true;
   };
-
   const steps=[
     <div key={0}>
       <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:"1.4rem",color:"#1a3320",marginBottom:"0.3rem"}}>Applicant Information</h2>
@@ -151,7 +151,6 @@ export default function KauaiPermitPrescreen(){
       <AIReviewPanel form={form}/>
     </div>,
   ];
-
   return(
     <div style={{minHeight:"100vh",background:"linear-gradient(160deg,#f0f9f1,#e8f4e8,#f4f9f0)",fontFamily:"'Lora',Georgia,serif"}}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Lora:wght@400;600&family=DM+Mono:wght@400;700&display=swap'); *{box-sizing:border-box;} body{margin:0;}`}</style>

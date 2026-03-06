@@ -153,7 +153,6 @@ export default function KauaiPermitPrescreen(){
   ];
   return(
     <div style={{minHeight:"100vh",background:"linear-gradient(160deg,#f0f9f1,#e8f4e8,#f4f9f0)",fontFamily:"'Lora',Georgia,serif"}}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Lora:wght@400;600&family=DM+Mono:wght@400;700&display=swap'); *{box-sizing:border-box;} body{margin:0;}`}</style>
       <div style={{background:"linear-gradient(135deg,#1a3320,#2d4a30)",padding:"1.5rem 2rem",display:"flex",alignItems:"center",gap:"1.5rem",boxShadow:"0 2px 20px rgba(0,0,0,0.3)"}}>
         <div style={{fontSize:"2.5rem"}}>🌺</div>
         <div>
